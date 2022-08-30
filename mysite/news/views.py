@@ -5,8 +5,27 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 
 from .models import News, Category
-from .forms import NewsForm
+from .forms import NewsForm, UserRegisterForm
 from .utils import MyMixin
+from django.contrib import messages
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Регистрация прошло успешно')
+            return redirect('login')
+        else:
+            messages.error(request, 'Ошибка регистрации')
+    else:
+        form = UserRegisterForm()
+    return render(request, 'news/register.html', {"form": form})
+
+
+def login(request):
+    return render(request, 'news/login.html')
 
 
 def test(request):
@@ -24,6 +43,7 @@ class HomeNews(MyMixin, ListView):
     # extra_context = {'title': 'Главная'}
     # queryset = News.objects.select_related('category')        # Уменьшить кол-во SQL запросов
     mixin_prop = 'hello world'
+    paginate_by = 2
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -40,6 +60,7 @@ class NewsByCategory(MyMixin, ListView):
     template_name = 'news/home_news_list.html'
     context_object_name = 'news'
     allow_empty = False
+    paginate_by = 2
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
