@@ -5,17 +5,19 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 
 from .models import News, Category
-from .forms import NewsForm, UserRegisterForm, UserLoginForm
+from .forms import NewsForm, UserRegisterForm, UserLoginForm, ContantForm
 from .utils import MyMixin
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.core.mail import send_mail
 
 
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            login(request, user)
             messages.success(request, 'Регистрация прошло успешно')
             return redirect('login')
         else:
@@ -32,17 +34,32 @@ def user_login(request):
             user = form.get_user()
             login(request, user)
             return redirect('home')
+    else:
+        form = UserLoginForm()
+    return render(request, 'news/login.html', {"form": form})
+
+
+def user_logout(request):
+    logout(request)
+    return redirect('login')
+
+
+def contact(request):
+    if request.method == 'POST':
+        form = ContantForm(request.POST)
+        if form.is_valid():
+            mail = send_mail(form.cleaned_data['subject'], form.cleaned_data['content'], 'pakito-nikita@mail.ru',
+                      ['pakito.nikita95@gmail.com'], fail_silently=True)
+            if mail:
+                messages.success(request, 'Письмо отправлено!')
+                return redirect('contact')
+            else:
+                messages.error(request, 'Ошибка отправки')
         else:
-            form = UserLoginForm()
-    return render(request, 'news/login.html', {'form': form})
-
-
-def test(request):
-    objects = ['john1', 'paul2', 'george3', 'ringo4', 'john5', 'paul6', 'george7']
-    paginator = Paginator(objects, 2)
-    page_num = request.GET.get('page', 1)
-    page_objects = paginator.get_page(page_num)
-    return render(request, 'news/test.html', {'page_obj': page_objects})
+            messages.error(request, 'Ошибка валидации')
+    else:
+        form = ContantForm()
+    return render(request, 'news/test.html', {"form": form})
 
 
 class HomeNews(MyMixin, ListView):
